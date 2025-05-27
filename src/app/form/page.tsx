@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function FormPage() {
+  const router = useRouter();
   // 記憶提示互動狀態
   const [showMemoryHint, setShowMemoryHint] = useState(false);
   const [memoryConfirmed, setMemoryConfirmed] = useState(false);
@@ -68,6 +70,27 @@ export default function FormPage() {
     return suggestions;
   }
 
+  function downloadCSV() {
+    // 只輸出實際填寫的欄位
+    const keys = Object.keys(formData);
+    const headers = keys;
+    const values = keys.map(k => formData[k]?.replace(/\n/g, ' ') ?? '');
+    const csvContent = [
+      headers.join(","),
+      values.map(v => `"${v.replace(/"/g, '""')}"`).join(",")
+    ].join("\n");
+    // 加上 BOM，確保 Excel 正常顯示中文
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `ICOPE_問卷_${formData["姓名"] || "未命名"}_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   if (submitted) {
     const suggestions = getSuggestions(formData);
     // 將基本資料與ICOPE量表分區
@@ -84,61 +107,81 @@ export default function FormPage() {
       k => !basicFields.includes(k) && !chronicFields.includes(k) && !unregisterFields.includes(k)
     );
     return (
-      <div className="bg-white rounded-lg shadow p-6 mt-6">
-        <h2 className="text-2xl font-bold mb-4" style={{color:'#ff8800'}}>填寫結果總結</h2>
-        <div className="mb-8">
-          <h3 className="font-semibold text-lg mb-2" style={{color:'#ff8800'}}>服務對象基本資料</h3>
-          <table className="w-full mb-4 border text-sm">
-            <tbody>
-              {basicFields.map(f => (
-                <tr key={f} className="border-b">
-                  <td className="font-semibold bg-gray-50 px-2 py-1 w-40">{f.replace(/_/g, " ")}</td>
-                  <td className="px-2 py-1">{formData[f] || "-"}</td>
-                </tr>
-              ))}
-              <tr className="border-b">
-                <td className="font-semibold bg-gray-50 px-2 py-1">慢性疾病史</td>
-                <td className="px-2 py-1">
-                  {chronicFields.filter(f => formData[f] === "on").map(f => f.replace("慢性疾病_", "")).join("、")}
-                  {formData["慢性疾病_其他詳情"] ? `（${formData["慢性疾病_其他詳情"]}）` : ""}
-                  {chronicFields.every(f => !formData[f]) && "-"}
-                </td>
-              </tr>
-              <tr className="border-b">
-                <td className="font-semibold bg-gray-50 px-2 py-1">未註冊原因</td>
-                <td className="px-2 py-1">
-                  {unregisterFields.filter(f => formData[f] === "on").map(f => f.replace("未註冊_", "")).join("、")}
-                  {formData["未註冊_其他詳情"] ? `（${formData["未註冊_其他詳情"]}）` : ""}
-                  {unregisterFields.every(f => !formData[f]) && "-"}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white shadow sm:rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
+                問卷提交成功
+              </h3>
+              <div className="mt-5 mb-8">
+                <button
+                  onClick={downloadCSV}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  下載 CSV 檔案
+                </button>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-2xl font-bold mb-4" style={{color:'#ff8800'}}>填寫結果總結</h2>
+                <div className="mb-8">
+                  <h3 className="font-semibold text-lg mb-2" style={{color:'#ff8800'}}>服務對象基本資料</h3>
+                  <table className="w-full mb-4 border text-sm">
+                    <tbody>
+                      {basicFields.map(f => (
+                        <tr key={f} className="border-b">
+                          <td className="font-semibold bg-gray-50 px-2 py-1 w-40">{f.replace(/_/g, " ")}</td>
+                          <td className="px-2 py-1">{formData[f] || "-"}</td>
+                        </tr>
+                      ))}
+                      <tr className="border-b">
+                        <td className="font-semibold bg-gray-50 px-2 py-1">慢性疾病史</td>
+                        <td className="px-2 py-1">
+                          {chronicFields.filter(f => formData[f] === "on").map(f => f.replace("慢性疾病_", "")).join("、")}
+                          {formData["慢性疾病_其他詳情"] ? `（${formData["慢性疾病_其他詳情"]}）` : ""}
+                          {chronicFields.every(f => !formData[f]) && "-"}
+                        </td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="font-semibold bg-gray-50 px-2 py-1">未註冊原因</td>
+                        <td className="px-2 py-1">
+                          {unregisterFields.filter(f => formData[f] === "on").map(f => f.replace("未註冊_", "")).join("、")}
+                          {formData["未註冊_其他詳情"] ? `（${formData["未註冊_其他詳情"]}）` : ""}
+                          {unregisterFields.every(f => !formData[f]) && "-"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mb-8">
+                  <h3 className="font-semibold text-lg mb-2" style={{color:'#ff8800'}}>ICOPE 長者功能評估量表</h3>
+                  <table className="w-full border text-sm">
+                    <tbody>
+                      {icopeFields.map(f => (
+                        <tr key={f} className="border-b">
+                          <td className="font-semibold bg-gray-50 px-2 py-1 w-64">{f.replace(/_/g, " ")}</td>
+                          <td className="px-2 py-1">{formData[f] || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mb-8">
+                  <h3 className="font-semibold text-lg mb-2" style={{color:'#ff8800'}}>建議</h3>
+                  {suggestions.length === 0 ? (
+                    <div className="text-green-700 font-semibold flex items-center gap-2"><span>✔️</span>無需進一步量表評估</div>
+                  ) : (
+                    <ul className="list-disc pl-6 text-red-700 space-y-1">
+                      {suggestions.map((s, i) => <li key={i} className="flex items-center gap-2"><span>⚠️</span>{s}</li>)}
+                    </ul>
+                  )}
+                </div>
+                <div className="text-gray-500 text-sm">可截圖保存此頁，或由主持人現場查看。</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="mb-8">
-          <h3 className="font-semibold text-lg mb-2" style={{color:'#ff8800'}}>ICOPE 長者功能評估量表</h3>
-          <table className="w-full border text-sm">
-            <tbody>
-              {icopeFields.map(f => (
-                <tr key={f} className="border-b">
-                  <td className="font-semibold bg-gray-50 px-2 py-1 w-64">{f.replace(/_/g, " ")}</td>
-                  <td className="px-2 py-1">{formData[f] || "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="mb-8">
-          <h3 className="font-semibold text-lg mb-2" style={{color:'#ff8800'}}>建議</h3>
-          {suggestions.length === 0 ? (
-            <div className="text-green-700 font-semibold flex items-center gap-2"><span>✔️</span>無需進一步量表評估</div>
-          ) : (
-            <ul className="list-disc pl-6 text-red-700 space-y-1">
-              {suggestions.map((s, i) => <li key={i} className="flex items-center gap-2"><span>⚠️</span>{s}</li>)}
-            </ul>
-          )}
-        </div>
-        <div className="text-gray-500 text-sm">可截圖保存此頁，或由主持人現場查看。</div>
       </div>
     );
   }
