@@ -209,7 +209,7 @@ export default function FormPage() {
         </div>
       )}
       {/* 表單內容 */}
-      <form style={{ color: "#000000", backgroundColor: "#FFFFFF" }} onSubmit={handleSubmit} className={showMemoryHint && !memoryConfirmed ? 'pointer-events-none opacity-40' : ''}>
+      <form style={{ color: '#000000', backgroundColor: '#FFFFFF' }} onSubmit={handleSubmit} className={showMemoryHint && !memoryConfirmed ? 'pointer-events-none opacity-40' : ''}>
         <h2 className="text-2xl font-bold mb-4" style={{color:'#ff8800'}}>服務對象基本資料</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* 基本資料欄位 */}
